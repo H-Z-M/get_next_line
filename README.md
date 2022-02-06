@@ -10,5 +10,5 @@
 |**Description**      | **Write a function which returns a line read from a file descriptor** |
 
 - プログラムは、-D BUFFER_SIZE=xx というフラグを付けてコンパイルする必要がある。これは、get_next_line の read 呼び出しのバッファサイズとして使用される。
-- プログラムはこのようにしてコンパイルされる。: gcc -Wall -Wextra -Werror -D BUFFER_SIZE=42 <files>.c.
+- プログラムはこのようにしてコンパイルされる。: gcc -Wall -Wextra -Werror -D BUFFER_SIZE=42 < files >.c.
 - get_next_lineで複数のfdを管理できるようにする。例えば、fd 3、4、5が読み取り可能な場合、それぞれのfdの読み取りスレッドを失うことなく、3に1回、4に1回、3に1回、5に1回などの頻度でget_next_lineを呼び出すことができる。
