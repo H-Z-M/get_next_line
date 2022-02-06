@@ -5,122 +5,99 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: sudatsu <sudatsu@student.42tokyo.jp>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-<<<<<<< HEAD
 /*   Created: 2021/08/11 19:05:43 by sudatsu           #+#    #+#             */
-<<<<<<< HEAD
-/*   Updated: 2021/09/01 17:24:19 by sudatsu          ###   ########.fr       */
-=======
-/*   Updated: 2021/09/01 00:36:15 by sss              ###   ########.fr       */
->>>>>>> d649aac1d758e9ecefec874cec0667c629af1c86
-=======
-/*   Created: 2021/09/06 03:17:16 by sudatsu           #+#    #+#             */
-/*   Updated: 2021/09/07 04:39:01 by sudatsu          ###   ########.fr       */
->>>>>>> 1aee3d3825f5f2e576e529406da45f604cc79a0b
+/*   Updated: 2021/12/08 10:23:28 by sudatsu          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-int	gnl_lstfind(t_list **list_top, t_list **current, int fd)
+int	list_create(t_list **top, t_list **current, int fd)
 {
-	*current = *list_top;
-	while (*current && (*current)->fd != fd)
-		*current = (*current)->next;
-	if (*current)
-		return (CONTINUE);
-	*current = (t_list *)malloc(sizeof(t_list));
+	*current = malloc(sizeof(t_list));
 	if (!*current)
 		return (ERROR);
 	(*current)->fd = fd;
 	(*current)->save = ft_strndup("", 0);
-	if (!*list_top)
+	if (!*top)
 		(*current)->next = NULL;
 	else
-		(*current)->next = *list_top;
-	*list_top = *current;
+		(*current)->next = *top;
+	*top = *current;
 	return (CONTINUE);
 }
 
-void	gnl_lstclear(t_list **list_top, t_list *current)
+int	list_find(t_list **top, t_list **current, int fd)
 {
-	t_list	*tmp;
-
-	if (*list_top == current)
-		*list_top = current->next;
-	else
-	{
-		tmp = *list_top;
-		while (tmp->next != current)
-			tmp = tmp->next;
-		tmp->next = current->next;
-	}
-	safe_free(current->save);
-	safe_free(current);
+	*current = *top;
+	while (*current && (*current)->fd != fd)
+		*current = (*current)->next;
+	if (*current)
+		return (CONTINUE);
+	return (list_create(top, current, fd));
 }
 
-int	save_to_line(char *isnewline, char **save, char **line)
+int	save_to_line(char *newline, char **save, char **line)
 {
 	char	*tmp;
 
-	if (isnewline)
-	{
-		*line = ft_strndup(*save, isnewline - *save + 1);
-		tmp = ft_strndup(isnewline + 1, ft_strlen(isnewline + 1));
-		if (!*line || !tmp)
-			return (ERROR);
-		safe_free(*save);
-		*save = tmp;
-		return (CONTINUE);
-	}
-	if (**save == '\0')
-		*line = NULL;
-	else
-		*line = ft_strndup(*save, ft_strlen(*save));
-	return (END);
+	*line = ft_strndup(*save, newline - *save + 1);
+	if (!*line)
+		return (ERROR);
+	tmp = ft_strndup(newline + 1, ft_strlen_gnl(newline + 1));
+	if (!tmp)
+		return (ERROR);
+	free(*save);
+	*save = tmp;
+	return (CONTINUE);
 }
 
-int	read_file(int fd, char **save, char *buf, char **line)
+int	read_to_newline(int fd, char **save, char *read_buf, char **line)
 {
 	char	*tmp;
 	ssize_t	read_sz;
 
 	while (1)
 	{
-		tmp = gnl_isnewline(*save, '\n');
+		tmp = isnewline(*save);
 		if (tmp)
 			return (save_to_line(tmp, save, line));
-		read_sz = read(fd, buf, BUFFER_SIZE);
-		if (read_sz == 0)
-			break ;
-		else if (read_sz == -1)
+		read_sz = read(fd, read_buf, BUFFER_SIZE);
+		if (read_sz == -1)
 			return (ERROR);
-		buf[read_sz] = '\0';
-		tmp = ft_strjoin(*save, buf);
+		else if (read_sz == 0)
+			break ;
+		read_buf[read_sz] = '\0';
+		tmp = ft_strjoin(*save, read_buf);
 		if (!tmp)
 			return (ERROR);
-		safe_free(*save);
+		free(*save);
 		*save = tmp;
 	}
-	return (save_to_line(tmp, save, line));
+	if (**save == '\0')
+		*line = NULL;
+	else
+		*line = ft_strndup(*save, ft_strlen_gnl(*save));
+	return (END);
 }
 
 char	*get_next_line(int fd)
 {
-	static t_list	*list_top;
+	static t_list	*top;
 	t_list			*current;
 	char			*line;
-	char			*buf;
+	char			*read_buf;
 	int				stat;
 
 	if (fd < 0 || BUFFER_SIZE <= 0)
 		return (NULL);
-	buf = (char *)malloc(BUFFER_SIZE + 1);
-	if (!buf || gnl_lstfind(&list_top, &current, fd) == ERROR)
+	read_buf = malloc((size_t)BUFFER_SIZE + 1);
+	if (!read_buf || list_find(&top, &current, fd) == ERROR)
 		return (NULL);
-	stat = read_file(fd, &current->save, buf, &line);
-	safe_free(buf);
+	stat = read_to_newline(fd, &current->save, read_buf, &line);
+	free(read_buf);
 	if (stat == END || stat == ERROR)
-		gnl_lstclear(&list_top, current);
+		list_clear(&top, current);
 	if (stat == ERROR)
 		return (NULL);
 	return (line);
